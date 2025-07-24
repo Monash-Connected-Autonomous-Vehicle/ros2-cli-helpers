@@ -41,6 +41,37 @@ clnp() {
   done
 }
 
+clnb() {
+  if [[ ! -d build || ! -d install ]]; then
+    echo "Error: build/ or install/ directory not found."
+    return 1
+  fi
+
+  if [[ $# -eq 0 ]]; then
+    echo "Usage: clnb <package1> [package2 ...]"
+    return 1
+  fi
+
+  echo "Cleaning packages: $*"
+  for pkg in "$@"; do
+    for dir in build install; do
+      target="$dir/$pkg"
+      if [[ -d "$target" ]]; then
+        echo "Removing $target"
+        rm -rf "$target"
+      else
+        echo "Skipping $target (not found)"
+      fi
+    done
+  done
+
+  echo "Rebuilding packages: $*"
+  colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release --packages-select "$@" \
+    || { echo "Build failed."; return 1; }
+
+  echo "Build complete."
+}
+
 # Build up to specific packages using colcon
 cbu() {
   if [[ $# -eq 0 ]]; then
@@ -70,3 +101,4 @@ _ros2_build_up_to_completion() {
   COMPREPLY=( $(compgen -W "$pkgs" -- "$cur") )
 }
 complete -F _ros2_build_up_to_completion cbu
+complete -F _ros2_build_up_to_completion clnb
